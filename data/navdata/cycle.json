@@ -1,0 +1,7 @@
+{
+  "airport": "RJAA",
+  "provider": "AIP Japan (JCAB) AD 2.12",
+  "effective": "2025-10-02",
+  "records": 4,
+  "note": "THR coordinates from AIP Japan RJAA AD 2.12. All four runway ends have LDA = TORA, no displaced thresholds."
+}

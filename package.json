@@ -1,0 +1,23 @@
+{
+  "name": "narita-taxi-guide",
+  "private": true,
+  "version": "1.0.0",
+  "description": "RJAA Narita taxi route guide for flight simulation",
+  "type": "module",
+  "scripts": {
+    "fetch:osm": "node scripts/fetch-osm.ts",
+    "extract:navdata": "node scripts/extract-navdata.ts",
+    "build:data": "node scripts/build-data.ts",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "node scripts/test-routes.ts",
+    "test:all": "node scripts/test-all.ts",
+    "test:loops": "node scripts/test-loops.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.7"
+  }
+}
