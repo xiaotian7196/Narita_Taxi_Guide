@@ -7,3 +7,6 @@ dist/
 # local working copy of the X-Plane CIFP extract; the checked-in runway records
 # come from AIP Japan instead
 RJAA.txt
+
+/live.png
+
