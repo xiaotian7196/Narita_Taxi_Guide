@@ -53,6 +53,24 @@ All data the app needs is already in the repository, so no X-Plane install is re
 `pnpm build` produces a static site in `dist/`. `pnpm test` routes every flow / runway / terminal
 combination as a smoke test, and `pnpm test:all` sweeps every stand on every runway.
 
+## Online version
+
+**<https://nrtrte.ソラ.jp/>** (punycode: `nrtrte.xn--3ckue.jp`)
+
+The site is published with GitHub Pages from the `gh-pages` branch (`build_type: legacy`).
+`public/CNAME` carries the punycode domain, and the DNS record is a Cloudflare-proxied CNAME to
+`xiaotian7196.github.io`, so TLS is terminated at Cloudflare and the origin is GitHub Pages.
+
+Publish an update with:
+
+```bash
+pnpm deploy:pages
+```
+
+It builds `dist/`, copies it to a temporary repository with `.nojekyll`, and force-pushes it to
+`gh-pages`; GitHub Pages then rebuilds on its own. The script needs `git` on `PATH` and a credential
+helper that can push to `origin`.
+
 ### Refreshing the data
 
 ```bash

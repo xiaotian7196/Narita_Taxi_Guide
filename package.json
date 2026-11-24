@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "test": "node scripts/test-routes.ts",
     "test:all": "node scripts/test-all.ts",
-    "test:loops": "node scripts/test-loops.ts"
+    "test:loops": "node scripts/test-loops.ts",
+    "deploy:pages": "node scripts/deploy-pages.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
