@@ -26,7 +26,7 @@ taxi logic.
   "Auto" prefers the AIP's designated speedy turn-offs.
 - **Departure mode** – stand → runway holding point, with the published entry (A1, A10, B1, B9) as default.
 - **Runway configurations** – South wind (16R/16L) and North wind (34L/34R).
-- **Published taxi logic** – the four AIP Japan standard departure routes (ROUTE 1–4), the arrival
+- **Published taxi logic** – the four AIP Japan standard departure routes (ROUTE 7–10), the arrival
   flow from the AIP Taxiing Charts, and the designated turn-off taxiways.
 - **Gateway routing** – every route is required to pass one of the `GWY` apron gateways; the step list and the
   map mark the point where the aircraft leaves the outer taxiway system for the apron, with the Ramp Control /
@@ -84,7 +84,7 @@ The runway records come from AIP Japan; to update them, edit `data/navdata/RJAA.
 
 | Source | File | Used for | Licence |
 | --- | --- | --- | --- |
-| AIP Japan, RJAA AD 2.12 (JCAB, effective 2 Oct 2025) | `data/navdata/RJAA.dat` | Runway thresholds and runway ends | JCAB AIP terms |
+| AIP Japan, RJAA AD 2.12 (JCAB, effective 3 Sep 2026) | `data/navdata/RJAA.dat` | Runway thresholds and runway ends | JCAB AIP terms |
 | OpenStreetMap via Overpass | `data/osm-rjaa.json` | Taxiways, stands, aprons, terminals, runway ends | © OpenStreetMap contributors, ODbL |
 | [GSI Tiles](https://maps.gsi.go.jp/development/ichiran.html) (`pale`, `seamlessphoto`) | loaded at runtime | Background map | Geospatial Information Authority of Japan (attribution shown on the map) |
 
@@ -190,16 +190,16 @@ Departures use the four routes named in **AIP Japan RJAA AD 2.22 (V)**, which AT
 
 | Route | To | Routing via |
 | --- | --- | --- |
-| ROUTE 1 | RWY 16R | K, S6, C, W, W6 and A |
-| ROUTE 2 | RWY 34L | C, S7, K and A |
-| ROUTE 3 | RWY 16L | A, K, S6, C and B |
-| ROUTE 4 | RWY 34R | A, S, C, S7 and K |
+| ROUTE 7 | RWY 16R | K, S6, C, W, W7 and A |
+| ROUTE 8 | RWY 34L | C, S7, K and A |
+| ROUTE 9 | RWY 16L | A, K, S6, C and B |
+| ROUTE 10 | RWY 34R | A, S, C, S7 and K |
 
 The named route starts at the apron gateway; Ramp Control assigns the movement from the stand to
 that gateway. The guide therefore constrains the runway-parallel taxiway (A for 16R/34L, B for
 16L/34R) for every stand, and applies the published middle section where the whole terminal can fly
-it — `C → W → W6 → A` from Terminal 2/3 on ROUTE 1, `C → S7 → K → A` from Terminal 3 on ROUTE 2,
-and `C → B` on ROUTE 3. Stands that cannot join that section without a detour fall back to the
+it — `C → W → W7 → A` from Terminal 2/3 on ROUTE 7, `C → S7 → K → A` from Terminal 3 on ROUTE 8,
+and `C → B` on ROUTE 9. Stands that cannot join that section without a detour fall back to the
 shortest path and show which published taxiways were left out.
 
 Arrivals are not named in the AIP. The Taxiing Charts (`RJAA AD 2.20`) show the flow from the
@@ -258,5 +258,6 @@ Technique, map, router and UI after the
 [lpxlpx7](https://github.com/lpxlpx7) and [xiaotian7196](https://github.com/xiaotian7196).
 Narita dataset, taxi logic and this edition by xiaotian7196.
 
-Taxi logic follows AIP Japan RJAA AD 2.20 (Taxiing Charts) and AD 2.22 (V) (Standard Taxiing
-Routes), effective 2 October 2025. ATC instructions always take precedence.
+Taxi logic follows AIP Japan RJAA AD 2.20 (Taxiing Charts, pages 39–48 of the PDF: 16R/34L/16L/34R
+arrivals and departures plus the CAT II/III routes) and AD 2.22 (V) (Standard Taxiing Routes),
+effective 3 September 2026. ATC instructions always take precedence.

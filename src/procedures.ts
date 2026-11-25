@@ -1,11 +1,12 @@
 // Standard taxi logic for RJAA (Narita), after AIP Japan RJAA AD 2.22 (V)
 // "Standard Taxiing Routes" and the Taxiing Charts (RJAA AD 2.20).
 //
-// Departures: the AIP names four standard routes and instructs them by name:
-//   ROUTE 1 (to 16R) K, S6, C, W, W6 and A
-//   ROUTE 2 (to 34L) C, S7, K and A
-//   ROUTE 3 (to 16L) A, K, S6, C and B
-//   ROUTE 4 (to 34R) A, S, C, S7 and K
+// Departures: the AIP names four standard routes and instructs them by name
+// (RJAA AD 2.22 (V), AIP effective 3 Sep 2026):
+//   ROUTE 7  (to 16R) K, S6, C, W, W7 and A
+//   ROUTE 8  (to 34L) C, S7, K and A
+//   ROUTE 9  (to 16L) A, K, S6, C and B
+//   ROUTE 10 (to 34R) A, S, C, S7 and K
 // Arrivals are not named in the AIP: the Taxiing Charts show the flow from the
 // runway to the apron gateways, and Ramp Control assigns the route from the
 // gateway to the stand.
@@ -68,36 +69,32 @@ export const ARRIVALS: Table = {
   },
 };
 
-// Departures: the AIP standard route is named in the note and the movement-area
-// part of it is flown naturally along the runway-parallel taxiway (A for
-// 16R/34L, B for 16L/34R). Only that taxiway is constrained: pinning the whole
-// published sequence would drag stands that join it late round the apron.
 // Departures: the AIP standard route is named in the note. The named route
 // starts at the apron gateway; Ramp Control assigns the movement from the stand
 // to it, so the guide only constrains the movement-area part it can apply to
 // every stand: the runway-parallel taxiway (A for 16R/34L, B for 16L/34R) and,
-// on ROUTE 3, the published C → B tail. Pinning the whole published sequence
+// on ROUTE 9, the published C → B tail. Pinning the whole published sequence
 // would drag stands that join it late round the apron.
 export const DEPARTURES: Table = {
   "16R": {
-    T1: [{ via: ["A"], entry: "A1", note: { en: "ROUTE 1 · full length at A1", ja: "ROUTE 1 · A1 で全長離陸" } }],
-    T2: [{ via: ["C", "W", "W6", "A"], entry: "A1", note: { en: "ROUTE 1 · C, W, W6, A · full length at A1", ja: "ROUTE 1 · C, W, W6, A · A1 で全長離陸" } }],
-    T3: [{ via: ["C", "W", "W6", "A"], entry: "A1", note: { en: "ROUTE 1 · C, W, W6, A · full length at A1", ja: "ROUTE 1 · C, W, W6, A · A1 で全長離陸" } }],
+    T1: [{ via: ["A"], entry: "A1", note: { en: "ROUTE 7 · full length at A1", ja: "ROUTE 7 · A1 で全長離陸" } }],
+    T2: [{ via: ["C", "W", "W7", "A"], entry: "A1", note: { en: "ROUTE 7 · C, W, W7, A · full length at A1", ja: "ROUTE 7 · C, W, W7, A · A1 で全長離陸" } }],
+    T3: [{ via: ["C", "W", "W7", "A"], entry: "A1", note: { en: "ROUTE 7 · C, W, W7, A · full length at A1", ja: "ROUTE 7 · C, W, W7, A · A1 で全長離陸" } }],
   },
   "34L": {
-    T1: [{ via: ["A"], entry: "A10", note: { en: "ROUTE 2 · full length at A10", ja: "ROUTE 2 · A10 で全長離陸" } }],
-    T2: [{ via: ["A"], entry: "A10", note: { en: "ROUTE 2 · full length at A10", ja: "ROUTE 2 · A10 で全長離陸" } }],
-    T3: [{ via: ["C", "S7", "K", "A"], entry: "A10", note: { en: "ROUTE 2 · C, S7, K, A · full length at A10", ja: "ROUTE 2 · C, S7, K, A · A10 で全長離陸" } }],
+    T1: [{ via: ["A"], entry: "A10", note: { en: "ROUTE 8 · full length at A10", ja: "ROUTE 8 · A10 で全長離陸" } }],
+    T2: [{ via: ["A"], entry: "A10", note: { en: "ROUTE 8 · full length at A10", ja: "ROUTE 8 · A10 で全長離陸" } }],
+    T3: [{ via: ["C", "S7", "K", "A"], entry: "A10", note: { en: "ROUTE 8 · C, S7, K, A · full length at A10", ja: "ROUTE 8 · C, S7, K, A · A10 で全長離陸" } }],
   },
   "16L": {
-    T1: [{ via: ["C", "B"], entry: "B1", note: { en: "ROUTE 3 · C, B · full length at B1", ja: "ROUTE 3 · C, B · B1 で全長離陸" } }],
-    T2: [{ via: ["C", "B"], entry: "B1", note: { en: "ROUTE 3 · C, B · full length at B1", ja: "ROUTE 3 · C, B · B1 で全長離陸" } }],
-    T3: [{ via: ["C", "B"], entry: "B1", note: { en: "ROUTE 3 · C, B · full length at B1", ja: "ROUTE 3 · C, B · B1 で全長離陸" } }],
+    T1: [{ via: ["C", "B"], entry: "B1", note: { en: "ROUTE 9 · C, B · full length at B1", ja: "ROUTE 9 · C, B · B1 で全長離陸" } }],
+    T2: [{ via: ["C", "B"], entry: "B1", note: { en: "ROUTE 9 · C, B · full length at B1", ja: "ROUTE 9 · C, B · B1 で全長離陸" } }],
+    T3: [{ via: ["C", "B"], entry: "B1", note: { en: "ROUTE 9 · C, B · full length at B1", ja: "ROUTE 9 · C, B · B1 で全長離陸" } }],
   },
   "34R": {
-    T1: [{ via: [], entry: "B9", note: { en: "ROUTE 4 · full length at B9", ja: "ROUTE 4 · B9 で全長離陸" } }],
-    T2: [{ via: [], entry: "B9", note: { en: "ROUTE 4 · full length at B9", ja: "ROUTE 4 · B9 で全長離陸" } }],
-    T3: [{ via: [], entry: "B9", note: { en: "ROUTE 4 · full length at B9", ja: "ROUTE 4 · B9 で全長離陸" } }],
+    T1: [{ via: [], entry: "B9", note: { en: "ROUTE 10 · full length at B9", ja: "ROUTE 10 · B9 で全長離陸" } }],
+    T2: [{ via: [], entry: "B9", note: { en: "ROUTE 10 · full length at B9", ja: "ROUTE 10 · B9 で全長離陸" } }],
+    T3: [{ via: [], entry: "B9", note: { en: "ROUTE 10 · full length at B9", ja: "ROUTE 10 · B9 で全長離陸" } }],
   },
 };
 

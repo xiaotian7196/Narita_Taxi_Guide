@@ -1,7 +1,7 @@
 {
   "airport": "RJAA",
   "provider": "AIP Japan (JCAB) AD 2.12",
-  "effective": "2025-10-02",
+  "effective": "2026-09-03",
   "records": 4,
-  "note": "THR coordinates from AIP Japan RJAA AD 2.12. All four runway ends have LDA = TORA, no displaced thresholds."
+  "note": "THR coordinates from AIP Japan RJAA AD 2.12 (effective 3 Sep 2026). All four runway ends have LDA = TORA, no displaced thresholds. Taxi routes follow AD 2.20 and AD 2.22 (V) ROUTE 7-10 of the same edition."
 }

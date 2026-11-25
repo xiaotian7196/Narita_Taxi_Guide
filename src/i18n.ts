@@ -77,8 +77,8 @@ const S = {
   },
   gatewayMap: { en: "Gateway {g}", ja: "ゲート {g}" },
   footer: {
-    en: "Standard departure routes after AIP Japan RJAA AD 2.22 (V) (ROUTE 1–4); arrival flow after the RJAA AD 2.20 Taxiing Charts. Runway thresholds from AIP Japan AD 2.12; taxiway geometry © OpenStreetMap contributors (ODbL); background map: GSI Tiles, Geospatial Information Authority of Japan. For flight simulation only — ATC instructions always take precedence.",
-    ja: "標準離場ルートは AIP Japan RJAA AD 2.22 (V)（ROUTE 1–4）、到着の流れは RJAA AD 2.20 タキシングチャートに基づきます。滑走路進入端は AIP Japan AD 2.12、誘導路形状は © OpenStreetMap contributors（ODbL）、背景地図は地理院タイル（国土地理院）。フライトシミュレーター専用です。常に管制指示が優先されます。",
+    en: "Standard departure routes after AIP Japan RJAA AD 2.22 (V) (ROUTE 7–10, effective 3 Sep 2026); arrival flow after the RJAA AD 2.20 Taxiing Charts. Runway thresholds from AIP Japan AD 2.12; taxiway geometry © OpenStreetMap contributors (ODbL); background map: GSI Tiles, Geospatial Information Authority of Japan. For flight simulation only — ATC instructions always take precedence.",
+    ja: "標準離場ルートは AIP Japan RJAA AD 2.22 (V)（ROUTE 7–10、2026年9月3日有効）、到着の流れは RJAA AD 2.20 タキシングチャートに基づきます。滑走路進入端は AIP Japan AD 2.12、誘導路形状は © OpenStreetMap contributors（ODbL）、背景地図は地理院タイル（国土地理院）。フライトシミュレーター専用です。常に管制指示が優先されます。",
   },
   basemap: { en: "Background map", ja: "背景地図" },
   baseMap: { en: "Map (GSI pale)", ja: "淡色地図" },
