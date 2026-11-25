@@ -19,6 +19,8 @@ taxi logic.
 
 ![Apron gateway callout on a 34R departure](docs/screenshot-gateway.png)
 
+![LVP mode: CAT II/III departure on 16R](docs/screenshot-lvp.png)
+
 ## Features
 
 - **Arrival mode** – runway exit → stand. Exits are detected from the taxiway network, labelled with
