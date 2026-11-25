@@ -159,6 +159,11 @@ E, S and T directly, while the B taxiway itself runs along the north-west perime
 wind the aircraft typically vacates at the north end and crosses the central area to reach the
 terminal, which is why the central junctions (C, S, E, K) need extra care.
 
+T and S are the apron taxilanes that run along the terminal piers: they are for the last few hundred
+metres to a stand, not for crossing the airport. A long transit between apron areas belongs on the
+through taxiways **C** and **K**. The router charges T/S 1.9× once they are more than 700 m from both
+the stand and the runway end, so a distant movement moves onto C/K instead of running down the pier.
+
 ### Departures
 
 | Runway | Route system |

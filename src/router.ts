@@ -37,6 +37,14 @@ const OFF_TEMPLATE = 2.4;
 const CROSSING = 350;
 const OWN_RUNWAY = 1e6;
 
+// T and S run along the terminal piers: they are apron taxilanes, meant for the
+// last few hundred metres to a stand. A long transit between apron areas belongs
+// on the through taxiways (C, K), so T/S is charged extra once it is far from
+// both ends of the movement.
+const APRON_LOCAL = new Set(["T", "S"]);
+const APRON_LOCAL_RADIUS = 700; // m from start or goal where T/S stays free
+const APRON_LOCAL_PENALTY = 1.9;
+
 /** binary min-heap over parallel arrays: one search pushes tens of thousands of entries */
 class Heap {
   private c: number[] = [];
@@ -167,6 +175,17 @@ export function route(ap: Airport, req: RouteRequest): RouteResult | null {
     if (!rw) return 0;
     return rw === req.ownRunway ? OWN_RUNWAY : CROSSING;
   };
+  // straight-line distance from the two ends of the movement, fixed per call
+  const dStart = new Float64Array(xy.length);
+  const dGoal = new Float64Array(xy.length);
+  for (let i = 0; i < xy.length; i++) {
+    dStart[i] = dist(xy[i], xy[req.start]);
+    dGoal[i] = dist(xy[i], xy[req.goal]);
+  }
+  const apronLocalPenalty = (node: number, ref: number) =>
+    APRON_LOCAL.has(ap.refs[ref]) && dStart[node] > APRON_LOCAL_RADIUS && dGoal[node] > APRON_LOCAL_RADIUS
+      ? APRON_LOCAL_PENALTY
+      : 1;
   // -> [new progress, length multiplier, flat extra cost]
   const step = (k: number, ref: number): [number, number, number] => {
     if (k < n && ref === viaIdx[k]) return [k + 1, 1, 0];
@@ -236,7 +255,7 @@ export function route(ap: Airport, req: RouteRequest): RouteResult | null {
         if (ang > MAX_TURN && ap.edgeLen[e] > 12 && ap.edgeLen[e2] > 12) continue;
         const [k2, mult, extra] = step(k, ap.edgeRef[e2]);
         const g2 = passed || (req.mustPass !== undefined && to === req.mustPass) ? 1 : 0;
-        const nc = c + ap.edgeLen[e2] * mult + extra + nodePenalty(to, node)
+        const nc = c + ap.edgeLen[e2] * mult * apronLocalPenalty(to, ap.edgeRef[e2]) + extra + nodePenalty(to, node)
           + ang * TURN_ALL + Math.max(0, ang - 45) * TURN_COST + refChange(ap.edgeRef[e], ap.edgeRef[e2]);
         const s2 = (e2 * K + k2) * G + g2;
         if (nc < cost[s2]) { cost[s2] = nc; prev[s2] = s; heap.push(nc, s2); }
