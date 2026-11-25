@@ -45,6 +45,15 @@ const APRON_LOCAL = (ref: string) => ref === "T" || ref === "S" || /^T\d+$/.test
 const APRON_LOCAL_RADIUS = 650; // m from start or goal where T/S stays free
 const APRON_LOCAL_PENALTY = 2.2;
 
+// C and K are the parallel diagonal through taxiways east of the terminal piers
+// and work as a one-way pair: north-east-bound traffic on C, south-west-bound on
+// K. Picking one for the whole movement (from the direction between its ends)
+// avoids weaving between the two parallels; the other one is only mildly
+// penalised because the published routes and some stand accesses need it.
+const ONE_WAY_MIN_X = 700;
+const ONE_WAY_PENALTY = 1.25;
+const ONE_WAY_MIN_DY = 300;
+
 /** binary min-heap over parallel arrays: one search pushes tens of thousands of entries */
 class Heap {
   private c: number[] = [];
@@ -186,6 +195,19 @@ export function route(ap: Airport, req: RouteRequest): RouteResult | null {
     APRON_LOCAL(ap.refs[ref]) && dStart[node] > APRON_LOCAL_RADIUS && dGoal[node] > APRON_LOCAL_RADIUS
       ? APRON_LOCAL_PENALTY
       : 1;
+  // the diagonal direction of the whole movement picks C (north-east) or K
+  // (south-west); only the through section east of the piers is affected
+  const oneWayPrefer = Math.abs(xy[req.goal][1] - xy[req.start][1]) >= ONE_WAY_MIN_DY
+    ? (xy[req.goal][1] > xy[req.start][1] ? "C" : "K")
+    : null;
+  const oneWayPenalty = (from: number, to: number, ref: number) => {
+    if (!oneWayPrefer) return 1;
+    const name = ap.refs[ref];
+    if ((name !== "C" && name !== "K") || name === oneWayPrefer) return 1;
+    if ((xy[from][0] + xy[to][0]) / 2 < ONE_WAY_MIN_X) return 1;
+    if (dStart[to] <= APRON_LOCAL_RADIUS || dGoal[to] <= APRON_LOCAL_RADIUS) return 1;
+    return ONE_WAY_PENALTY;
+  };
   // -> [new progress, length multiplier, flat extra cost]
   const step = (k: number, ref: number): [number, number, number] => {
     if (k < n && ref === viaIdx[k]) return [k + 1, 1, 0];
@@ -255,7 +277,8 @@ export function route(ap: Airport, req: RouteRequest): RouteResult | null {
         if (ang > MAX_TURN && ap.edgeLen[e] > 12 && ap.edgeLen[e2] > 12) continue;
         const [k2, mult, extra] = step(k, ap.edgeRef[e2]);
         const g2 = passed || (req.mustPass !== undefined && to === req.mustPass) ? 1 : 0;
-        const nc = c + ap.edgeLen[e2] * mult * apronLocalPenalty(to, ap.edgeRef[e2]) + extra + nodePenalty(to, node)
+        const nc = c + ap.edgeLen[e2] * mult * apronLocalPenalty(to, ap.edgeRef[e2])
+          * oneWayPenalty(node, to, ap.edgeRef[e2]) + extra + nodePenalty(to, node)
           + ang * TURN_ALL + Math.max(0, ang - 45) * TURN_COST + refChange(ap.edgeRef[e], ap.edgeRef[e2]);
         const s2 = (e2 * K + k2) * G + g2;
         if (nc < cost[s2]) { cost[s2] = nc; prev[s2] = s; heap.push(nc, s2); }

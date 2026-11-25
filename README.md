@@ -164,7 +164,12 @@ metres to a stand, not for crossing the airport. A long transit between apron ar
 through taxiways **C** and **K**. The router charges T/S (including the numbered pier connectors
 T3–T10 and S1–S7) 2.2× once they are more than 650 m from both the stand and the runway end, so a
 distant movement moves onto C/K instead of running down the pier. This applies to every runway and
-both directions; `scripts/check-ts.ts` verifies that no route keeps a T/S stretch away from its ends.
+both directions; `scripts/check-ts.ts` verifies that only short pier connectors remain.
+
+On the diagonal through section east of the piers (x > 700 m), C and K work as a one-way pair:
+north-east-bound movements prefer **C**, south-west-bound movements prefer **K**. The other parallel
+is charged 1.25× on that section, so the taxi follows the flow where a choice exists without being
+forced into a detour where the topology or a published route needs the other one.
 
 ### Departures
 
