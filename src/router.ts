@@ -37,13 +37,13 @@ const OFF_TEMPLATE = 2.4;
 const CROSSING = 350;
 const OWN_RUNWAY = 1e6;
 
-// T and S run along the terminal piers: they are apron taxilanes, meant for the
-// last few hundred metres to a stand. A long transit between apron areas belongs
-// on the through taxiways (C, K), so T/S is charged extra once it is far from
-// both ends of the movement.
-const APRON_LOCAL = new Set(["T", "S"]);
-const APRON_LOCAL_RADIUS = 700; // m from start or goal where T/S stays free
-const APRON_LOCAL_PENALTY = 1.9;
+// T and S (and their numbered pier connectors T3–T10, S1–S7) run along the
+// terminal piers: they are apron taxilanes, meant for the last few hundred metres
+// to a stand. A long transit between apron areas belongs on the through taxiways
+// (C, K), so these are charged extra once far from both ends of the movement.
+const APRON_LOCAL = (ref: string) => ref === "T" || ref === "S" || /^T\d+$/.test(ref) || /^S\d+$/.test(ref);
+const APRON_LOCAL_RADIUS = 650; // m from start or goal where T/S stays free
+const APRON_LOCAL_PENALTY = 2.2;
 
 /** binary min-heap over parallel arrays: one search pushes tens of thousands of entries */
 class Heap {
@@ -183,7 +183,7 @@ export function route(ap: Airport, req: RouteRequest): RouteResult | null {
     dGoal[i] = dist(xy[i], xy[req.goal]);
   }
   const apronLocalPenalty = (node: number, ref: number) =>
-    APRON_LOCAL.has(ap.refs[ref]) && dStart[node] > APRON_LOCAL_RADIUS && dGoal[node] > APRON_LOCAL_RADIUS
+    APRON_LOCAL(ap.refs[ref]) && dStart[node] > APRON_LOCAL_RADIUS && dGoal[node] > APRON_LOCAL_RADIUS
       ? APRON_LOCAL_PENALTY
       : 1;
   // -> [new progress, length multiplier, flat extra cost]

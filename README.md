@@ -161,8 +161,10 @@ terminal, which is why the central junctions (C, S, E, K) need extra care.
 
 T and S are the apron taxilanes that run along the terminal piers: they are for the last few hundred
 metres to a stand, not for crossing the airport. A long transit between apron areas belongs on the
-through taxiways **C** and **K**. The router charges T/S 1.9× once they are more than 700 m from both
-the stand and the runway end, so a distant movement moves onto C/K instead of running down the pier.
+through taxiways **C** and **K**. The router charges T/S (including the numbered pier connectors
+T3–T10 and S1–S7) 2.2× once they are more than 650 m from both the stand and the runway end, so a
+distant movement moves onto C/K instead of running down the pier. This applies to every runway and
+both directions; `scripts/check-ts.ts` verifies that no route keeps a T/S stretch away from its ends.
 
 ### Departures
 
