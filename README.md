@@ -28,9 +28,12 @@ taxi logic.
 - **Runway configurations** – South wind (16R/16L) and North wind (34L/34R).
 - **Published taxi logic** – the four AIP Japan standard departure routes (ROUTE 7–10), the arrival
   flow from the AIP Taxiing Charts, and the designated turn-off taxiways.
+- **LVP mode** – CAT II/III low-visibility operations: runway 16R only, departures via A1/A2, arrivals
+  vacating via A6/A7, with an LVP notice and ATC-controlled stop-bar reminder.
 - **Gateway routing** – every route is required to pass one of the `GWY` apron gateways; the step list and the
   map mark the point where the aircraft leaves the outer taxiway system for the apron, with the Ramp Control /
-  stop-bar reminder. A stand whose gateway cannot be connected falls back to the natural path and says so.
+  stop-bar reminder. Gateways are limited to 1.3 km from the stand, and a stand whose gateway cannot be
+  connected without a detour falls back to the natural path and reports the gateway it passes.
 - **Runway crossings** are flagged on the map and in the step list.
 - **Chart grid** – 500 m cells (columns A–Z without I/O, rows 1–n) with edge rulers; every step and stand shows its grid reference.
 - **GSI background map** – the pale map or aerial photo from GSI Tiles (Geospatial Information Authority of Japan), or no background. Switch with the layers button.
@@ -140,10 +143,14 @@ inside them NARITA RAMP CONTROL (121.6 / 121.75 / 118.15) clears the aircraft, a
 bar means stop and wait for that clearance. The guide makes the gateway a **mandatory waypoint**:
 the router carries a "gateway passed" state and only accepts a path that goes through one of these
 nodes. An arrival takes the first `GWY` after the runway (the apron entry), a departure the last one
-before the runway (the apron exit). It first checks the gateway the natural taxi would already pass
-and only reroutes to a nearby alternative when the path avoids every gateway. The gateway is drawn as
-an amber `G` diamond and inserted into the step list, so the boundary between the movement area and
-the apron is visible rather than implied.
+before the runway (the apron exit). Only gateways within **1.3 km of the stand** are considered, so
+the aircraft enters the apron at the planned nearby entry rather than crossing the whole apron.
+
+Forcing the exact gateway node can need a loop the OSM graph does not have. When the natural path
+already follows every published taxiway, passes a gateway and forcing the node would be more than 5%
+longer (or would reverse), the natural path is kept and that gateway is reported instead. The gateway
+is drawn as an amber `G` diamond and inserted into the step list, so the boundary between the movement
+area and the apron is visible rather than implied.
 
 ### Arrivals
 
@@ -183,6 +190,13 @@ forced into a detour where the topology or a published route needs the other one
 Departures are not simply arrivals reversed: the named routes leave through fixed gateways and the
 central connectors (K, E, B, A, S, T, W) decide which way the aircraft joins the runway parallel
 taxiway.
+
+### Low-visibility operations (LVP)
+
+The **LVP** switch in the panel selects the CAT II/III taxi routes from RJAA AD 2.20 §2.11/2.12 and
+AD 2.22 LVTO. In this mode only runway **16R** is offered; departures line up at **A1** (or A2 on
+request) and arrivals vacate at **A6/A7**. The result panel shows an LVP notice and the stop bars are
+treated as ATC-controlled: hold until cleared.
 
 ### Published departure routes
 

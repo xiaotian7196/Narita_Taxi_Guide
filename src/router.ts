@@ -24,6 +24,8 @@ export interface RouteRequest {
   avoidRefs?: string[];
   /** the path must pass through this node (apron gateway) */
   mustPass?: number;
+  /** ...and it must be reached along this taxiway ref (the gateway's own taxiway) */
+  mustPassRef?: number;
 }
 export interface RouteResult {
   nodes: number[];
@@ -276,7 +278,7 @@ export function route(ap: Airport, req: RouteRequest): RouteResult | null {
         // a metre-long stub says nothing about the real direction of a turn
         if (ang > MAX_TURN && ap.edgeLen[e] > 12 && ap.edgeLen[e2] > 12) continue;
         const [k2, mult, extra] = step(k, ap.edgeRef[e2]);
-        const g2 = passed || (req.mustPass !== undefined && to === req.mustPass) ? 1 : 0;
+        const g2 = passed || (req.mustPass !== undefined && to === req.mustPass && (req.mustPassRef === undefined || ap.edgeRef[e2] === req.mustPassRef)) ? 1 : 0;
         const nc = c + ap.edgeLen[e2] * mult * apronLocalPenalty(to, ap.edgeRef[e2])
           * oneWayPenalty(node, to, ap.edgeRef[e2]) + extra + nodePenalty(to, node)
           + ang * TURN_ALL + Math.max(0, ang - 45) * TURN_COST + refChange(ap.edgeRef[e], ap.edgeRef[e2]);

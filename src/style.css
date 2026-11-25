@@ -154,6 +154,8 @@ button { font: inherit; color: inherit; }
 .gateway-mark .gate-tag text { font: 700 9px var(--font-display); fill: #ffd28a; }
 .steps li.gateway .ico { color: #c07800; }
 .steps li.gateway .txt > small { color: var(--label-2); }
+.lvp { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font); color: var(--label); cursor: pointer; }
+.lvp input { width: 16px; height: 16px; accent-color: var(--blue); }
 
 .exit-pin { cursor: pointer; }
 .exit-pin rect { fill: var(--card); stroke: var(--separator); stroke-width: 0.5px; }

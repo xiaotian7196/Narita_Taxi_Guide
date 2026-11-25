@@ -75,8 +75,7 @@ export const ARRIVALS: Table = {
 // every stand: the runway-parallel taxiway (A for 16R/34L, B for 16L/34R) and,
 // on ROUTE 9, the published C → B tail. Pinning the whole published sequence
 // would drag stands that join it late round the apron.
-export const DEPARTURES: Table = {
-  "16R": {
+export const DEPARTURES: Table = {  "16R": {
     T1: [{ via: ["A"], entry: "A1", note: { en: "ROUTE 7 · full length at A1", ja: "ROUTE 7 · A1 で全長離陸" } }],
     T2: [{ via: ["C", "W", "W7", "A"], entry: "A1", note: { en: "ROUTE 7 · C, W, W7, A · full length at A1", ja: "ROUTE 7 · C, W, W7, A · A1 で全長離陸" } }],
     T3: [{ via: ["C", "W", "W7", "A"], entry: "A1", note: { en: "ROUTE 7 · C, W, W7, A · full length at A1", ja: "ROUTE 7 · C, W, W7, A · A1 で全長離陸" } }],
@@ -96,6 +95,17 @@ export const DEPARTURES: Table = {
     T2: [{ via: [], entry: "B9", note: { en: "ROUTE 10 · full length at B9", ja: "ROUTE 10 · B9 で全長離陸" } }],
     T3: [{ via: [], entry: "B9", note: { en: "ROUTE 10 · full length at B9", ja: "ROUTE 10 · B9 で全長離陸" } }],
   },
+};
+
+/**
+ * Low-visibility operations (AIP RJAA AD 2.20 2.11/2.12 and AD 2.22 LVTO):
+ * CAT II/III taxi routes are published for runway 16R, LVTO entries are A1/A2,
+ * and the designated CAT III turn-offs are A6/A7.
+ */
+export const LVP = {
+  runway: "16R",
+  exits: ["A6", "A7"],
+  entries: ["A1", "A2"],
 };
 
 export function templates(table: Table, rwy: string, group: Group, flow: FlowId): Template[] {

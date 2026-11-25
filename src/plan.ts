@@ -1,6 +1,6 @@
 // Turns a user selection into one routed option per published template.
 import { dist, type Airport, type Exit, type Leg, type XY } from "./airport.ts";
-import { ARRIVALS, DEPARTURES, templates, type FlowId, type Template } from "./procedures.ts";
+import { ARRIVALS, DEPARTURES, LVP, templates, type FlowId, type Template } from "./procedures.ts";
 import { route, steps, type RouteResult, type Step } from "./router.ts";
 
 export interface PlanRequest {
@@ -10,8 +10,28 @@ export interface PlanRequest {
   stand: string;
   /** arrival: exit key `${ref}${side}`; departure: entry taxiway ref */
   point?: string;
+  /** low-visibility (CAT II/III) operations */
+  lvp?: boolean;
 }
 type Gateway = { r: string; p: XY; n?: number };
+
+/** biggest net direction change along a path, in degrees (90 m window) */
+function maxReversal(pts: XY[]): number {
+  const bearing = (a: XY, b: XY) => Math.atan2(b[0] - a[0], b[1] - a[1]);
+  let worst = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    let j = i, acc = 0;
+    while (acc < 90 && j > 0) { acc += dist(pts[j], pts[j - 1]); j--; }
+    const hin = bearing(pts[j], pts[i]);
+    j = i; acc = 0;
+    while (acc < 90 && j < pts.length - 1) { acc += dist(pts[j], pts[j + 1]); j++; }
+    const hout = bearing(pts[i], pts[j]);
+    let d = Math.abs(((hout - hin) * 180) / Math.PI) % 360;
+    if (d > 180) d = 360 - d;
+    worst = Math.max(worst, d);
+  }
+  return worst;
+}
 
 export interface PlanOption {
   template: Template;
@@ -72,9 +92,10 @@ const planCaches = new WeakMap<Airport, Map<string, PlanOption[]>>();
 export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
   let cache = planCaches.get(ap);
   if (!cache) planCaches.set(ap, (cache = new Map()));
-  const cacheKey = `${req.mode}|${req.flow}|${req.runway}|${req.stand}|${req.point ?? ""}`;
+  const cacheKey = `${req.mode}|${req.flow}|${req.runway}|${req.stand}|${req.point ?? ""}|${req.lvp ? "lvp" : ""}`;
   const hit = cache.get(cacheKey);
   if (hit) return hit;
+  if (req.lvp && req.runway !== LVP.runway) return [];
 
   const stand = ap.stand(req.stand);
   if (!stand) return [];
@@ -96,7 +117,7 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
     const all = (ap.data.gateways ?? []).filter((g) => g.n !== undefined);
     const near = all
       .map((g) => ({ g, d: dist(from, g.p) }))
-      .filter((x) => x.d <= 2600)
+      .filter((x) => x.d <= 1300)
       .sort((a, b) => a.d - b.d);
     const seen = new Set<string>();
     const list: typeof all = [];
@@ -104,7 +125,7 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
       if (seen.has(g.r)) continue;
       seen.add(g.r);
       list.push(g);
-      if (list.length >= 3) break;
+      if (list.length >= 5) break;
     }
     return list.length ? list : all.slice().sort((a, b) => dist(from, a.p) - dist(from, b.p)).slice(0, 2);
   };
@@ -159,11 +180,23 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
     const gws = gatewayCandidates([stand.x, stand.y]);
     for (const t of list) {
       let candidates = req.point ? exits.filter((e) => exitKey(e) === req.point) : exits.filter((e) => e.s >= MIN_EXIT_S);
+      // never auto-select the last connector at the stop end: leaving there means
+      // turning back along the runway
+      if (!req.point) {
+        const endS = ap.end(req.runway).sMax;
+        const usable = candidates.filter((e) => e.s <= endS - 200);
+        if (usable.length) candidates = usable;
+      }
       // a stand is only ever served from its own side of the runway
       const standSide = ap.sideOf(req.runway, [stand.x, stand.y]);
       const sameSide = candidates.filter((e) => e.side === standSide);
       if (sameSide.length) candidates = sameSide;
       if (!req.point && t.side && candidates.some((e) => e.side === t.side)) candidates = candidates.filter((e) => e.side === t.side);
+      // LVP: the CAT II/III chart uses the designated 16R turn-offs
+      if (req.lvp) {
+        const lvp = candidates.filter((e) => LVP.exits.includes(e.ref));
+        if (lvp.length) candidates = lvp;
+      }
       // try the most plausible turn-offs first and keep the search small: manual
       // selection always keeps every candidate
       if (!req.point) {
@@ -184,21 +217,45 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
             goalDir, avoidRefs: avoid,
           });
           if (!base) continue;
-          // Prefer the gateway the natural path already passes; only reroute when
-          // it passes none. This keeps the taxi sensible while making the gateway
-          // a real waypoint.
+          // The gateway must be crossed on its own taxiway, so even the one the
+          // natural path passes is rerouted with the mustPass constraint. If the
+          // natural path already follows every published taxiway and passes a
+          // gateway, that is the answer: skip the per-gateway search.
           const tried: { r: RouteResult; gw: Gateway | undefined }[] = [];
           const onPath = gatewaysOnPath(base.nodes, "arr");
-          if (onPath.length) tried.push({ r: base, gw: onPath[0] });
-          for (const gw of gws.slice(0, 2)) {
-            if (onPath.some((o) => o.r === gw.r)) continue;
-            const r = route(ap, {
-              start: exit.node, firstHop: exit.next, goal: stand.entry, via: t.via, ownRunway: own,
-              goalDir, avoidRefs: avoid, mustPass: gw.n,
-            });
-            if (r) tried.push({ r, gw });
+          const baseClean = base.missed.length === 0 && new Set(base.nodes).size === base.nodes.length
+            && maxReversal(base.nodes.map((n) => ap.xy[n])) <= 130;
+          if (baseClean && onPath.length) {
+            tried.push({ r: base, gw: onPath[0] });
+          } else {
+            const cands: Gateway[] = [];
+            for (const gw of [...onPath.slice(0, 1), ...gws.slice(0, 4)]) {
+              if (!cands.some((c) => c.r === gw.r)) cands.push(gw);
+            }
+            for (const gw of cands) {
+              const r = route(ap, {
+                start: exit.node, firstHop: exit.next, goal: stand.entry, via: t.via, ownRunway: own,
+                goalDir, avoidRefs: avoid, mustPass: gw.n,
+              });
+              if (r) tried.push({ r, gw });
+            }
           }
-          for (const { r, gw } of tried) {
+          if (!tried.length) tried.push({ r: base, gw: undefined });
+          // A gateway the graph cannot reach without doubling back is worse than
+          // a clean taxi: fall back to the natural path and report the gateway it
+          // passes, rather than drawing a loop.
+          const clean = tried.filter(({ r }) =>
+            new Set(r.nodes).size === r.nodes.length && maxReversal(r.nodes.map((n) => ap.xy[n])) <= 130);
+          let choices = clean.length ? clean : [{ r: base, gw: undefined as Gateway | undefined }];
+          // forcing the exact gateway node sometimes needs a loop the graph does
+          // not have; if the natural path already passes a gateway, follows every
+          // published taxiway and forcing is more than 5% longer, keep the natural
+          // path and report that gateway
+          const baseGw = findGateway(ap, base.nodes, "arr");
+          const close = choices.filter(({ r }) => r.length <= base.length * 1.05);
+          if (close.length) choices = close;
+          else if (baseGw && base.missed.length === 0) choices = [{ r: base, gw: undefined }];
+          for (const { r, gw } of choices) {
             // prefer a shallow turn-off around a typical landing roll, then the
             // gateway closest to the stand; a path that revisits a node is a loop
             const loop = new Set(r.nodes).size < r.nodes.length;
@@ -215,7 +272,9 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
               summary: [...st.map((s) => s.ref).filter(Boolean), `Spot ${stand.ref}`].join(" → "),
               crossings: [...new Set(st.map((s) => s.crossing).filter((c): c is string => !!c))],
               crossAt: crossPoints(ap, r.nodes, own),
-              gateway: gw ? { ref: gw.r, at: gw.p } : findGateway(ap, r.nodes, "arr"),
+              gateway: gw
+                ? { ref: gw.r, at: gw.p }
+                : findGateway(ap, r.nodes, "arr") ?? (gws[0] ? { ref: gws[0].r, at: gws[0].p } : undefined),
             };
           }
         }
@@ -252,7 +311,9 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
     const junctions = ap.junctions(req.runway);
     const gws = gatewayCandidates([stand.x, stand.y]);
     for (const t of templates(DEPARTURES, req.runway, stand.group, req.flow)) {
-      const want = req.point ?? t.entry;
+      const want = req.lvp
+        ? (req.point && LVP.entries.includes(req.point) ? req.point : LVP.entries[0])
+        : req.point ?? t.entry;
       const entry = (want && junctions.find((j) => j.ref === want)) || junctions[0];
       if (!entry) continue;
       const base = route(ap, {
@@ -263,20 +324,35 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
       if (!base) continue;
       const tried: { r: RouteResult; gw: Gateway | undefined }[] = [];
       const onPath = gatewaysOnPath(base.nodes, "dep");
-      if (onPath.length) tried.push({ r: base, gw: onPath[0] });
-      for (const gw of gws.slice(0, 2)) {
-        if (onPath.some((o) => o.r === gw.r)) continue;
-        const r = route(ap, {
-          start: stand.entry, goal: entry.node, goalFrom: (entry as Leg).next, via: t.via, ownRunway: own,
-          startDir: goalDir && [-goalDir[0], -goalDir[1]],
-          mustPass: gw.n,
-        });
-        if (r) tried.push({ r, gw });
+      const baseClean = base.missed.length === 0 && new Set(base.nodes).size === base.nodes.length
+        && maxReversal(base.nodes.map((n) => ap.xy[n])) <= 130;
+      if (baseClean && onPath.length) {
+        tried.push({ r: base, gw: onPath[0] });
+      } else {
+        const cands: Gateway[] = [];
+        for (const gw of [...onPath.slice(0, 1), ...gws.slice(0, 4)]) {
+          if (!cands.some((c) => c.r === gw.r)) cands.push(gw);
+        }
+        for (const gw of cands) {
+          const r = route(ap, {
+            start: stand.entry, goal: entry.node, goalFrom: (entry as Leg).next, via: t.via, ownRunway: own,
+            startDir: goalDir && [-goalDir[0], -goalDir[1]],
+            mustPass: gw.n,
+          });
+          if (r) tried.push({ r, gw });
+        }
       }
       if (!tried.length) tried.push({ r: base, gw: undefined });
+      const clean = tried.filter(({ r }) =>
+        new Set(r.nodes).size === r.nodes.length && maxReversal(r.nodes.map((n) => ap.xy[n])) <= 130);
+      let choices = clean.length ? clean : [{ r: base, gw: undefined as Gateway | undefined }];
+      const baseGw = findGateway(ap, base.nodes, "dep");
+      const close = choices.filter(({ r }) => r.length <= base.length * 1.05);
+      if (close.length) choices = close;
+      else if (baseGw && base.missed.length === 0) choices = [{ r: base, gw: undefined }];
       let best: PlanOption | null = null;
       let bestScore = Infinity;
-      for (const { r, gw } of tried) {
+      for (const { r, gw } of choices) {
         const loop = new Set(r.nodes).size < r.nodes.length;
         const score = r.length + r.missed.length * 4000 + (gw ? dist([stand.x, stand.y], gw.p) * 0.1 : 0)
           + (loop ? 1e6 : 0);
@@ -290,7 +366,9 @@ export function plan(ap: Airport, req: PlanRequest): PlanOption[] {
           summary: [`Spot ${stand.ref}`, ...st.map((s) => s.ref).filter(Boolean), `RWY ${req.runway}`].join(" → "),
           crossings: [...new Set(st.map((s) => s.crossing).filter((c): c is string => !!c))],
           crossAt: crossPoints(ap, r.nodes, own),
-          gateway: gw ? { ref: gw.r, at: gw.p } : findGateway(ap, r.nodes, "dep"),
+          gateway: gw
+            ? { ref: gw.r, at: gw.p }
+            : findGateway(ap, r.nodes, "dep") ?? (gws[0] ? { ref: gws[0].r, at: gws[0].p } : undefined),
         };
       }
       if (best) out.push(best);

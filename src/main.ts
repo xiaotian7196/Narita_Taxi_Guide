@@ -3,7 +3,7 @@ import raw from "./data/rjaa.json";
 import { Airport, type RawData, type XY } from "./airport.ts";
 import { MapView, type Basemap, type MapPoint } from "./map.ts";
 import { bestIndex, exitKey, MIN_EXIT_S, plan, type PlanOption } from "./plan.ts";
-import { FLOWS, type FlowId } from "./procedures.ts";
+import { FLOWS, LVP, type FlowId } from "./procedures.ts";
 import type { Step } from "./router.ts";
 import { getLang, setLang, t, tx, type Key, type Lang } from "./i18n.ts";
 
@@ -21,11 +21,12 @@ interface State {
   option: number | null;
   grid: boolean;
   base: Basemap;
+  lvp: boolean;
 }
 const STORE = "rjaa-taxi-guide";
 const state: State = {
   lang: navigator.language.startsWith("ja") ? "ja" : "en",
-  mode: "arr", flow: "S", runway: "16R", stand: null, point: null, option: null, grid: true, base: "pale",
+  mode: "arr", flow: "S", runway: "16R", stand: null, point: null, option: null, grid: true, base: "pale", lvp: false,
 };
 try {
   Object.assign(state, JSON.parse(localStorage.getItem(STORE) ?? "{}"), { option: null });
@@ -36,7 +37,7 @@ const save = () => {
   try { localStorage.setItem(STORE, JSON.stringify(state)); } catch { /* ignore */ }
 };
 const flow = () => FLOWS.find((f) => f.id === state.flow) ?? FLOWS[0];
-const runways = () => (state.mode === "arr" ? flow().arr : flow().dep);
+const runways = () => (state.lvp ? [LVP.runway] : state.mode === "arr" ? flow().arr : flow().dep);
 if (!runways().includes(state.runway)) state.runway = runways()[0];
 if (state.stand && !ap.stand(state.stand)) state.stand = null;
 setLang(state.lang);
@@ -216,7 +217,10 @@ function pointsFor(): UiPoint[] {
     const side = stand ? ap.sideOf(state.runway, [stand.x, stand.y]) : undefined;
     const all = ap.exits(state.runway);
     const near = side ? all.filter((e) => e.side === side) : [];
-    return (near.length ? near : all).map((e) => ({
+    const list = near.length ? near : all;
+    // LVP: the CAT II/III chart uses the designated 16R turn-offs
+    const lvp = state.lvp ? list.filter((e) => LVP.exits.includes(e.ref)) : [];
+    return (lvp.length ? lvp : list).map((e) => ({
       key: exitKey(e), label: e.ref, side: e.side, s: e.s, sub: `${(e.s / 1000).toFixed(1)} km`,
       at: e.pin, anchor: ap.xy[e.node],
     }));
@@ -225,6 +229,7 @@ function pointsFor(): UiPoint[] {
   return ap.junctions(state.runway)
     .filter((j) => j.s < (end.sMax - end.sMin) * 0.5) // departure half of the runway
     .filter((j, i, l) => l.findIndex((x) => x.ref === j.ref) === i)
+    .filter((j) => !state.lvp || LVP.entries.includes(j.ref))
     .map((j) => ({
       key: j.ref, label: j.ref, s: j.s,
       sub: j.s < 100 ? t("full") : t("remain", { d: `${((end.sMax - j.s) / 1000).toFixed(1)} km` }),
@@ -304,6 +309,7 @@ function renderResult(opts: PlanOption[], selIdx: number) {
     .join('<span class="arrow">›</span>');
 
   const notices: string[] = [];
+  if (state.lvp) notices.push(`<div class="notice warn">${WARN}<span>${esc(t("lvpNotice"))}</span></div>`);
   if (o.template.note) notices.push(`<div class="notice info">${INFO}<span>${esc(tx(o.template.note))}</span></div>`);
   if (o.crossings.length) notices.push(`<div class="notice warn">${WARN}<span>${esc(t("crossWarn", { r: o.crossings.join(listSep()) }))}</span></div>`);
   if (o.missed.length) notices.push(`<div class="notice warn">${WARN}<span>${esc(t("missedWarn", { t: o.missed.join(listSep()) }))}</span></div>`);
@@ -379,19 +385,20 @@ map.onAlt = pickOption;
 // ---------------- update ----------------
 let lastRouteKey = "";
 function update(fitView: boolean) {
+  if (state.lvp) state.runway = LVP.runway;
   save();
   renderControls();
   renderStands();
   map.selectStand(state.stand);
   map.setActiveRunway(ap.end(state.runway), state.mode);
-  const opts = state.stand ? plan(ap, { mode: state.mode, flow: state.flow, runway: state.runway, stand: state.stand, point: state.point ?? undefined }) : [];
+  const opts = state.stand ? plan(ap, { mode: state.mode, flow: state.flow, runway: state.runway, stand: state.stand, point: state.point ?? undefined, lvp: state.lvp }) : [];
   // default to the shortest option, the same one the chips tag
   if (state.option === null || state.option >= opts.length) state.option = opts.length ? bestIndex(opts) : null;
   const sel = state.option !== null ? opts[state.option] : undefined;
   renderPoints(opts, sel);
   renderResult(opts, state.option ?? 0);
 
-  const key = `${state.mode}|${state.runway}|${state.stand}|${state.point}|${state.option}`;
+  const key = `${state.mode}|${state.runway}|${state.stand}|${state.point}|${state.option}|${state.lvp}`;
   if (key !== lastRouteKey) map.setRoute(opts, state.option ?? 0); // don't replay the draw-in on language change
   if (fitView && key !== lastRouteKey) {
     layoutPad();
@@ -403,6 +410,17 @@ function update(fitView: boolean) {
   }
   lastRouteKey = key;
 }
+
+// ---------------- LVP switch ----------------
+const lvpToggle = $<HTMLInputElement>("lvp-toggle");
+lvpToggle.checked = state.lvp;
+lvpToggle.onchange = () => {
+  state.lvp = lvpToggle.checked;
+  if (state.lvp) state.runway = LVP.runway;
+  state.point = null;
+  state.option = null;
+  update(true);
+};
 
 // ---------------- map buttons ----------------
 $("zoom-in").onclick = () => map.zoomBy(1.6, undefined, undefined, true);
